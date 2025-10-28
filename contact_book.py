@@ -52,6 +52,9 @@ class ContactBook:
                 return contact
         return None
 
+    def get_contact_ids(self):
+        return [c['id'] for c in self.data]
+
     def find_contact(self, search_term: str,
                      mode: Literal['name', 'phone_number', 'comment', 'all'] = 'all') -> list[Contact]:
         """Поиск контактов с регулярными выражениями"""
@@ -82,18 +85,21 @@ class ContactBook:
             return []
 
     def save_file(self) -> None:
+        self._ensure_file_exists()
+        try:
+            with open(self.file_path, 'w') as file:
+                json.dump(self.data, file, ensure_ascii=False)
+            print('Файл сохранен.')
+            self.changed = False
+        except Exception as e:
+            raise SaveFileError(f'Невозможно сохранить файл.\n {e}')
+
+    def exit_and_save_file(self) -> None:
         if not self.changed:
             return
         save_changes = input('Изменения не сохранены. Сохранить? (Y/n): ') or 'Y'
         if save_changes.lower() == 'y':
-            self._ensure_file_exists()
-            try:
-                with open(self.file_path, 'w') as file:
-                    json.dump(self.data, file, ensure_ascii=False)
-                print('Файл сохранен.')
-                self.changed = False
-            except Exception as e:
-                raise SaveFileError(f'Невозможно сохранить файл.\n {e}')
+            self.save_file()
 
     @staticmethod
     def show_contact(contacts: Contact | list[Contact]) -> None:

@@ -42,21 +42,36 @@ class ContactBookCLI:
     def run(self) -> None:
         print('Добро пожаловать в телефонный справочник.')
 
-        while True:
-            command = self._get_int_input(self.MENU, max(self.commands.keys()))
-            if command is None:
-                continue
+        try:
+            while True:
+                command = self._get_int_input(self.MENU, range(1, max(self.commands.keys()) + 1))
+                if command is None:
+                    continue
 
-            handler = self.commands.get(command)
-            if handler is None:
-                print('Введенная команда не поддерживается.')
-                continue
+                handler = self.commands.get(command)
+                if handler is None:
+                    print('Введенная команда не поддерживается.')
+                    continue
 
-            if handler() == 'exit':
-                break
+                if handler() == 'exit':
+                    break
+        except KeyboardInterrupt:
+            print()
+            self.exit()
 
     @staticmethod
-    def _get_int_input(prompt: str, number_of_options: int) -> int:
+    def keyboard_interrupt_handler(func: Callable):
+        def wrapper(*args, **kwargs):
+            try:
+                print('Чтобы выйти назад нажмите Ctrl+C в терминале.')
+                return func(*args, **kwargs)
+            except KeyboardInterrupt:
+                print()
+                return None
+        return wrapper
+
+    @staticmethod
+    def _get_int_input(prompt: str, options: list[int], error_msg = 'Введенная команда не поддерживается.') -> int:
         """Получить целочисленный ввод с валидацией."""
         while True:
             user_input = input(prompt).strip()
@@ -64,27 +79,30 @@ class ContactBookCLI:
                 print('Ввод должен быть положительным числом.')
                 continue
             int_user_input = int(user_input)
-            if int_user_input < 1 or int_user_input > number_of_options:
-                print('Введенная команда не поддерживается.')
+            if int_user_input not in options:
+                print(error_msg)
                 continue
             return int_user_input
 
     @staticmethod
-    def _get_phone_input(prompt: str = 'Введите телефон (без знака "+"): ') -> int:
+    def _get_phone_input(prompt: str = 'Введите телефон (без знака "+"): ', allow_empty: bool = False) -> int:
         """Получить и валидировать номер телефона."""
         while True:
             phone = input(prompt).strip()
-            if not phone:
-                print('Номер не может быть пустым.')
-                continue
+            if allow_empty and phone == '':
+                return phone
+            else:
+                if phone == '':
+                    print('Значение не может быть пустым.')
+                    continue
 
-            if not phone.isdigit():
-                print('Номер должен содержать только цифры.')
-                continue
+                if not phone.isdigit():
+                    print('Номер должен содержать только цифры.')
+                    continue
 
-            if not (7 <= len(phone) <= 15):
-                print('Номер должен содержать от 7 до 15 цифр.')
-                continue
+                if not (7 <= len(phone) <= 15):
+                    print('Номер должен содержать от 7 до 15 цифр.')
+                    continue
 
             return int(phone)
 
@@ -92,9 +110,15 @@ class ContactBookCLI:
         """Показать все контакты."""
         self.contact_book.show_all_contacts()
 
+    @keyboard_interrupt_handler
     def create_contact(self) -> None:
         """Создать новый контакт."""
-        name = input('Введите имя: ').strip()
+        while True:
+            name = input('Введите имя: ').strip()
+            if name == '':
+                print('Значение не может быть пустым.')
+                continue
+            break
         phone_number = self._get_phone_input()
         comment = input('Введите комментарий: ').strip()
 
@@ -105,10 +129,13 @@ class ContactBookCLI:
         })
         print(f'Добавлен новый контакт {name}')
 
+    @keyboard_interrupt_handler
     def edit_contact(self) -> None:
         """Редактировать существующий контакт."""
         contact_id = self._get_int_input(
-            'Введите ID контакта, который хотите изменить: '
+            'Введите ID контакта, который хотите изменить: ',
+            options=self.contact_book.get_contact_ids(),
+            error_msg='Данный ID не найден.'
         )
 
         contact = self.contact_book.get_contact(contact_id)
@@ -117,7 +144,7 @@ class ContactBookCLI:
             return
 
         new_name = input(f'Введите новое имя [{contact["name"]}]: ').strip()
-        new_phone = self._get_phone_input(f'Введите новый телефон [{contact["phone_number"]}]: ')
+        new_phone = self._get_phone_input(f'Введите новый телефон [{contact["phone_number"]}]: ', allow_empty=True)
         new_comment = input(f'Введите новый комментарий [{contact["comment"]}]: ').strip()
 
         updated_keys = {}
@@ -131,9 +158,10 @@ class ContactBookCLI:
         if updated_keys:
             self.contact_book.edit_contact(contact_id, updated_keys)
 
+    @keyboard_interrupt_handler
     def find_contact(self) -> None:
         """Найти контакт по различным критериям."""
-        mode = self._get_int_input(self.SEARCH_MENU, max(self.SEARCH_FIELDS.keys()))
+        mode = self._get_int_input(self.SEARCH_MENU, range(1, max(self.SEARCH_FIELDS.keys()) + 1))
 
         value = input('Введите значение: ').strip()
         contacts = self.contact_book.find_contact(value, self.SEARCH_FIELDS[mode])
@@ -143,19 +171,16 @@ class ContactBookCLI:
         else:
             self.contact_book.show_contact(contacts)
 
+    @keyboard_interrupt_handler
     def delete_contact(self) -> None:
-        """Удалить один или несколько контактов."""
-        contact_ids_str = input(
-            'Введите ID контактов, которые хотите удалить '
-            '(множественные ID вводите через запятую): '
-        ).strip()
+        """Удалить контакт."""
+        contact_id = self._get_int_input(
+            'Введите ID контакта, который хотите удалить: ',
+            options=self.contact_book.get_contact_ids(),
+            error_msg='Данный ID не найден.'
+        )
 
-        try:
-            contact_ids = [int(c.strip()) for c in contact_ids_str.split(',')]
-            if contact_ids:
-                self.contact_book.delete_contact(contact_ids)
-        except ValueError:
-            print('Допускаются только числовые значения, которые можно перечислить через запятые.')
+        self.contact_book.delete_contact(contact_id)
 
     def save(self) -> None:
         """Сохранить изменения."""
@@ -163,11 +188,10 @@ class ContactBookCLI:
 
     def exit(self) -> str:
         """Выйти из приложения."""
-        self.contact_book.save_file()
+        self.contact_book.exit_and_save_file()
         return 'exit'
 
 
 if __name__ == '__main__':
-    pass
-    # cli = ContactBookCLI('data.json')
-    # cli.run()
+    cli = ContactBookCLI('data.json')
+    cli.run()
