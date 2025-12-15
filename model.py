@@ -16,7 +16,6 @@ class ContactBookModel:
         self.file_path: Path = Path(filename)
         self.reader = FileReader(self.file_path)
         self.writer = FileWriter(self.file_path)
-        self.data = []
 
     def load_data(self) -> None:
         """Загружает данные с обработкой ошибок"""

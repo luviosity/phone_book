@@ -1,44 +1,52 @@
-class NotADigitValueError(ValueError):
+class PhoneBookBaseException(Exception):
     pass
 
 
-class UnsupportedCommandError(ValueError):
+class PhoneBookValueError(PhoneBookBaseException):
     pass
 
 
-class EmptyValueInInputError(ValueError):
+class NotADigitValueError(PhoneBookValueError):
     pass
 
 
-class InvalidPhoneNumberError(ValueError):
+class UnsupportedCommandError(PhoneBookValueError):
     pass
 
 
-class WrongContactIdError(ValueError):
+class EmptyValueInInputError(PhoneBookValueError):
     pass
 
 
-class FileCorruptedError(Exception):
+class InvalidPhoneNumberError(PhoneBookValueError):
+    pass
+
+
+class WrongContactIdError(PhoneBookValueError):
+    pass
+
+
+class FileCorruptedError(PhoneBookBaseException):
     """Файл поврежден или имеет неверный формат"""
     pass
 
 
-class InvalidFileFormatError(Exception):
+class InvalidFileFormatError(PhoneBookBaseException):
     """Некорректный формат данных в файле"""
     pass
 
 
-class ContactLoadError(Exception):
+class ContactLoadError(PhoneBookBaseException):
     """Ошибка при загрузке контакта"""
     pass
 
 
-class SaveFileError(Exception):
+class SaveFileError(PhoneBookBaseException):
     """Ошибка при сохранении файла"""
     pass
 
 
-class CreateEmptyBookError(Exception):
+class CreateEmptyBookError(PhoneBookBaseException):
     """Ошибка при создании пустого справочника"""
     pass
 

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "phone-book"
+version = "0.0.1"
+description = ""
+authors = [{ name = "Aleksandr Andreev", email = "aleksandr.andreev.dev@gmail.com" }]
+requires-python = "==3.11.7"
+readme = "README.md"
+dependencies = [
+    "pytest>=9.0.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["phone_book"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
